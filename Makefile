@@ -1,4 +1,4 @@
 CFLAGS+=-std=c99 
 LDFLAGS+=
 
-totalsize: totalsize.o
+listdir: listdir.o

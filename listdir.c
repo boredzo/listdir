@@ -11,7 +11,7 @@
 #include <string.h>
 
 static int runforpath(const char *path);
-static off_t totaldiratpath(const char *path);
+static size_t listdiratpath(const char *path);
 
 int main(int argc, char **argv) {
 	int status = EXIT_SUCCESS;
@@ -22,21 +22,18 @@ int main(int argc, char **argv) {
 }
 
 static int runforpath(const char *path) {
-	off_t size = totaldiratpath(path);
-	printf("%lld\t%s\n", size, path);
-	return size >= 0
-		? EXIT_SUCCESS
-		: EXIT_FAILURE;
+	size_t count = listdiratpath(path);
+	printf("%zu\t%s\n", count, path);
+	return EXIT_SUCCESS;
 }
 
-static void logpath(unsigned depth, const char *name) {
+static void printpath(unsigned depth, const char *name) {
 	for (unsigned d = 0; d < depth; ++d) fputc('\t', stdout);
 	printf("%s\n", name);
 }
-#define logpath(x, y) /**/
 
-static off_t totaldiratpath(const char *path) {
-	off_t size = 0;
+static size_t listdiratpath(const char *path) {
+	size_t count = 0;
 
 	DIR *stream = opendir(path);
 	if (!stream) {
@@ -53,29 +50,12 @@ static off_t totaldiratpath(const char *path) {
 	while ((readdir_r(stream, &entry, &result) == 0) && result) {
 		if (strcmp(entry.d_name, ".") == 0) continue;
 		if (strcmp(entry.d_name, "..") == 0) continue;
-		logpath(depth, entry.d_name);
+		printpath(depth, entry.d_name);
 
-		switch (entry.d_type) {
-			case DT_DIR:
-				++depth;
-				logpath(depth, "-----");
-				size += totaldiratpath(entry.d_name);
-				logpath(depth, "-----");
-				--depth;
-				break;
-			default:
-				{
-					struct stat sb;
-					int stat_result = stat(entry.d_name, &sb);
-					if (stat_result == 0) {
-						size += sb.st_size;
-					} else {
-						perror("Could not stat");
-						char cwd[PATH_MAX];
-						fprintf(stderr, "%s/%s\n", getcwd(cwd, PATH_MAX), entry.d_name);
-					}
-				}
-				break;
+		if (entry.d_type == DT_DIR) {
+			++depth;
+			count += listdiratpath(entry.d_name);
+			--depth;
 		}
 	}
 
@@ -84,5 +64,5 @@ static off_t totaldiratpath(const char *path) {
 		perror("Could not restore current directory");
 	closedir(stream);
 
-	return size;
+	return count;
 }
