@@ -22,9 +22,9 @@ int main(int argc, char **argv) {
 }
 
 static int runforpath(const char *path) {
-	size_t count = listdiratpath(path);
-	printf("%zu\t%s\n", count, path);
-	return EXIT_SUCCESS;
+	return listdiratpath(path) != (size_t)-1
+		? EXIT_SUCCESS
+		: EXIT_FAILURE;
 }
 
 static void printpath(unsigned depth, const char *name) {
